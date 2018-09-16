@@ -1,0 +1,47 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /basics
+spring:
+  datasource:
+     driver-class-name: oracle.jdbc.driver.OracleDriver
+     username: hyk
+     password: hyk123456
+     url: jdbc:oracle:thin:@localhost:1521:xe
+     type: com.zaxxer.hikari.HikariDataSource
+     hikari:
+      minimum-idle: 5
+      maximum-pool-size: 15
+      auto-commit: true
+      idle-timeout: 30000
+      pool-name: DatebookHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: select 1 from dual
+
+  #mvc:
+   # static-path-pattern: /static/**
+  logging:
+    level:
+      root: info,debug
+    org:
+        springframework:
+          web: debug
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password:
+    timeout: 5000ms
+
+  jwt:
+    token:
+      expiresSecond: 172800
+      base64Secret: MDk4ZjZiY2Q0NjIxZDM3M2NhZGU0ZTgzMjYyN2I0ZjY=
+
+
+
+
+
+
+
+
