@@ -24,19 +24,22 @@ spring:
   logging:
     level:
       root: info,debug
-    org:
-        springframework:
-          web: debug
+  org:
+    springframework:
+      web: debug
   redis:
     host: 127.0.0.1
     port: 6379
     password:
     timeout: 5000ms
 
-  jwt:
-    token:
-      expiresSecond: 172800
-      base64Secret: MDk4ZjZiY2Q0NjIxZDM3M2NhZGU0ZTgzMjYyN2I0ZjY=
+swagger:
+   enabled : true
+
+jwt:
+  token:
+    expiresSecond: 172800
+    base64Secret: MDk4ZjZiY2Q0NjIxZDM3M2NhZGU0ZTgzMjYyN2I0ZjY=
 
 
 
