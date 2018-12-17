@@ -4,10 +4,12 @@ server:
     context-path: /basics
 spring:
   datasource:
-     driver-class-name: oracle.jdbc.driver.OracleDriver
+     #driver-class-name: oracle.jdbc.driver.OracleDriver
+     driver-class-name: com.mysql.jdbc.Driver
      username: hyk
      password: hyk123456
-     url: jdbc:oracle:thin:@localhost:1521:xe
+#     url: jdbc:oracle:thin:@localhost:1521:xe
+     url: jdbc:mysql://47.105.181.242:3306/iotlog?user=iotlog&amp;password=iotlog123&amp;autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=utf-8
      type: com.zaxxer.hikari.HikariDataSource
      hikari:
       minimum-idle: 5
@@ -40,6 +42,15 @@ jwt:
   token:
     expiresSecond: 172800
     base64Secret: MDk4ZjZiY2Q0NjIxZDM3M2NhZGU0ZTgzMjYyN2I0ZjY=
+
+snmp:
+    timeout: 8000
+    community: public
+    ip : 47.105.181.242
+
+redis :
+    ip : 47.105.181.242
+    port : 6379
 
 
 

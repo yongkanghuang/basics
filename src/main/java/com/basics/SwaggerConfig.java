@@ -15,12 +15,15 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 /**
  * swagger 构建rest api 文档
  * http://127.0.0.1:8083/basics/swagger-ui.html
+ * @author hyk
  */
 @Configuration
 @EnableSwagger2
 public class SwaggerConfig {
 
-    //是否开启
+    /**
+     * 是否文档开启
+     */
     @Value(value = "${swagger.enabled}")
     Boolean swaggerEnabled;
 
@@ -31,7 +34,7 @@ public class SwaggerConfig {
                 .apiInfo(apiInfo())
                 .enable(swaggerEnabled)
                 .select()
-                .apis(RequestHandlerSelectors.basePackage("com.test.database.controller"))
+                .apis(RequestHandlerSelectors.basePackage("com.basics"))
                 .paths(PathSelectors.any()).build();
     }
     private ApiInfo apiInfo() {
