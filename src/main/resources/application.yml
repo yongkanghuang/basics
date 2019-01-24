@@ -1,3 +1,4 @@
+#debug: true
 server:
   port: 8083
   servlet:
@@ -5,11 +6,11 @@ server:
 spring:
   datasource:
      #driver-class-name: oracle.jdbc.driver.OracleDriver
-     driver-class-name: com.mysql.jdbc.Driver
-     username: hyk
-     password: hyk123456
+     driver-class-name: com.mysql.cj.jdbc.Driver
+     username: *
+     password: *
 #     url: jdbc:oracle:thin:@localhost:1521:xe
-     url: jdbc:mysql://47.105.181.242:3306/iotlog?user=iotlog&amp;password=iotlog123&amp;autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=utf-8
+     url: jdbc:mysql://ip:3306/basics?user=root&amp;password=root&amp;autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=utf-8
      type: com.zaxxer.hikari.HikariDataSource
      hikari:
       minimum-idle: 5
@@ -20,12 +21,19 @@ spring:
       max-lifetime: 1800000
       connection-timeout: 30000
       connection-test-query: select 1 from dual
+  data:
+    elasticsearch:
+      cluster-name: master
+      cluster-nodes: 127.0.0.1:9300
+      repositories:
+        enabled: true
 
-  #mvc:
+
+    #mvc:
    # static-path-pattern: /static/**
   logging:
     level:
-      root: info,debug
+      root: debug
   org:
     springframework:
       web: debug
@@ -34,7 +42,7 @@ spring:
     port: 6379
     password:
     timeout: 5000ms
-
+#swagger-ui.html
 swagger:
    enabled : true
 
@@ -46,10 +54,10 @@ jwt:
 snmp:
     timeout: 8000
     community: public
-    ip : 47.105.181.242
+    ip : ip
 
 redis :
-    ip : 47.105.181.242
+    ip : ip
     port : 6379
 
 

@@ -16,8 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 
-import static org.snmp4j.mp.MessageProcessingModel.MPv1;
-
 /**
  * @author hyk
  * snmp 协议监控
@@ -71,6 +69,14 @@ public class SnmpUtil {
     @Value(value = "${snmp.community}")
     public void setCommunity(String community) {
         SnmpUtil.community = community;
+    }
+
+    public static void main(String[] args){
+        try {
+            SnmpUtil.initSnmp("tcp","47.105.181.242","161");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
