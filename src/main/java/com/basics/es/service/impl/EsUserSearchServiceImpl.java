@@ -36,10 +36,7 @@ import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.ResultsExtractor;
 import org.springframework.data.elasticsearch.core.mapping.ElasticsearchPersistentEntity;
 import org.springframework.data.elasticsearch.core.mapping.ElasticsearchPersistentProperty;
-import org.springframework.data.elasticsearch.core.query.IndexQuery;
-import org.springframework.data.elasticsearch.core.query.IndexQueryBuilder;
-import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
-import org.springframework.data.elasticsearch.core.query.SearchQuery;
+import org.springframework.data.elasticsearch.core.query.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -87,8 +84,7 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
      */
     @Override
     public void deleteEsUserById(String id,String indexSuffix) {
-        EsIndexChange.setSuffix(indexSuffix);
-        userSearchRepository.deleteById(id);
+        elasticsearchTemplate.delete(userIndex+"_"+indexSuffix,"content",id);
     }
 
     /**
