@@ -30,9 +30,9 @@ public class EsUserSearchController {
     @Autowired
     EsUserSearchService esUserSearchService;
 
-    @GetMapping("/get/{id}")
-    public EsUser getEsUserByid(@PathVariable String id){
-        return esUserSearchService.getEsUserById(id);
+    @GetMapping("/get/{id}/{indexSuffix}")
+    public EsUser getEsUserByid(@PathVariable String id,@PathVariable String indexSuffix){
+        return esUserSearchService.getEsUserById(id,indexSuffix);
     }
 
     /**
@@ -41,17 +41,17 @@ public class EsUserSearchController {
      * @return
      */
     @PostMapping("/save")
-    public EsUser saveUser(@RequestBody(required = false) EsUser esUser){
+    public EsUser saveUser(@RequestBody(required = false) EsUser esUser,@RequestParam String indexSuffix){
         List<EsUser> esUserList = new ArrayList<>();
         log.info("date："+esUser.getDate()+",date2："+esUser.getDateFormat());
         esUserList.add(esUser);
-        esUserSearchService.saveEsUser(esUserList);
+        esUserSearchService.saveEsUser(esUserList,indexSuffix);
         return esUser;
     }
 
-    @GetMapping("/delete/{id}")
-    public Map<String,String> deleteEsUserByid(@PathVariable String id){
-        esUserSearchService.deleteEsUserById(id);
+    @GetMapping("/delete/{id}/{indexSuffix}")
+    public Map<String,String> deleteEsUserByid(@PathVariable String id,@PathVariable String indexSuffix){
+        esUserSearchService.deleteEsUserById(id,indexSuffix);
         Map<String,String> map = new HashMap<>();
         map.put("code","200");
         return map;
@@ -69,7 +69,7 @@ public class EsUserSearchController {
     @ApiOperation(value = "分页获取用户")
     @GetMapping("/list/page")
     public Page<EsUser> queryEsUserForList(@RequestParam(required = false) String userName,@RequestParam(required = false) String phone,
-                                           @RequestParam(required = false) String startTime,@RequestParam(required = false) String endTime,
+                                           @RequestParam String startTime,@RequestParam String endTime,
                                            @RequestParam(required = false) String orderField,@RequestParam int page,@RequestParam int size){
         EsUser esUser = new EsUser();
         esUser.setPhone(phone);
@@ -80,12 +80,16 @@ public class EsUserSearchController {
 
     @ApiOperation(value = "汇聚用户")
     @GetMapping("/agg/page")
-    public Map<String,Object> getEsUserAggregationByCreateOn(@RequestParam(required = false) String userName, @RequestParam(required = false) String phone,String sex, @RequestParam(required = false) String orderField, @RequestParam int page,@RequestParam int size){
+    public Map<String,Object> getEsUserAggregationByCreateOn(@RequestParam(required = false) String userName,
+                                                             @RequestParam(required = false) String phone,String sex,
+                                                             @RequestParam String startTime,@RequestParam String endTime,
+                                                             @RequestParam(required = false) String orderField,
+                                                             @RequestParam int page,@RequestParam int size){
         EsUser esUser = new EsUser();
         esUser.setPhone(phone);
         esUser.setUserName(userName);
         esUser.setSex(sex);
-        Map<String,Object> reMap = esUserSearchService.getEsUserAggregationByCreateOn(esUser,page,size,orderField);
+        Map<String,Object> reMap = esUserSearchService.getEsUserAggregationByCreateOn(esUser,startTime,endTime,page,size,orderField);
         reMap.put("code","200");
         return reMap;
     }

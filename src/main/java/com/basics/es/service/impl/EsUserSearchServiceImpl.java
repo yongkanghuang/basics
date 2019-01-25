@@ -1,11 +1,16 @@
 package com.basics.es.service.impl;
 
+import com.basics.base.es.MappingBuilder;
 import com.basics.es.dao.UserSearchRepository;
 import com.basics.es.entity.EsUser;
 import com.basics.es.entity.EsUserAggVo;
 import com.basics.es.service.EsUserSearchService;
+import com.basics.utils.DateUtil;
+import com.basics.utils.ElasticsearchUtil;
+import com.basics.utils.EsIndexChange;
 import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.RangeQueryBuilder;
@@ -21,17 +26,27 @@ import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.ElasticsearchException;
+import org.springframework.data.elasticsearch.annotations.Mapping;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.ResultsExtractor;
+import org.springframework.data.elasticsearch.core.mapping.ElasticsearchPersistentEntity;
+import org.springframework.data.elasticsearch.core.mapping.ElasticsearchPersistentProperty;
+import org.springframework.data.elasticsearch.core.query.IndexQuery;
+import org.springframework.data.elasticsearch.core.query.IndexQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
+
+import static org.springframework.data.elasticsearch.core.ElasticsearchTemplate.readFileFromClasspath;
 
 /**
  * @Description //TODO
@@ -48,6 +63,9 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
     @Autowired
     ElasticsearchTemplate elasticsearchTemplate;
 
+    @Value(value = "${elasticsearch.userIndex}")
+    String userIndex;
+
     /**
      * 查询es数据源的单用户
      *
@@ -55,8 +73,9 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
      * @return
      */
     @Override
-    public EsUser getEsUserById(String id) {
+    public EsUser getEsUserById(String id,String indexSuffix) {
         //jdk 1.8 -->Optional
+        EsIndexChange.setSuffix(indexSuffix);
         Optional<EsUser> esUser = userSearchRepository.findById(id);
         return esUser.get();
     }
@@ -67,7 +86,8 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
      * @param id
      */
     @Override
-    public void deleteEsUserById(String id) {
+    public void deleteEsUserById(String id,String indexSuffix) {
+        EsIndexChange.setSuffix(indexSuffix);
         userSearchRepository.deleteById(id);
     }
 
@@ -77,9 +97,87 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
      * @param esUserList
      */
     @Override
-    public void saveEsUser(List<EsUser> esUserList) {
-        userSearchRepository.saveAll(esUserList);
+    public void saveEsUser(List<EsUser> esUserList,String indexSuffix) {
+        List<IndexQuery> indexQueries = new ArrayList<IndexQuery>();
+        for (EsUser esUser:esUserList){
+            IndexQuery indexQuery = new IndexQueryBuilder().withIndexName(userIndex+"_"+indexSuffix).withType("content").withObject(esUser).build();
+            indexQueries.add(indexQuery);
+        }
+//
+        elasticsearchTemplate.bulkIndex(indexQueries);
+//        EsIndexChange.setSuffix(indexSuffix);
+//        userSearchRepository.saveAll(esUserList);
+//        BulkRequestBuilder bulkRequestBuilder = elasticsearchTemplate.getClient().prepareBulk();
+//        Field[] fs = MappingBuilder.retrieveFields(EsUser.class);
+////
+//        try {
+//            IndexRequestBuilder indexRequestBuilder = elasticsearchTemplate.getClient().prepareIndex("user"+indexSuffix,"content");
+//            XContentBuilder xContentBuilder = jsonBuilder().startObject();
+//            for (int i = 0; i < fs.length; i++){
+//                xContentBuilder.field(fs[i].getName(),fs[i].get(esUserList.get(0)));
+//            }
+//            xContentBuilder.endObject();
+//            indexRequestBuilder.setSource(xContentBuilder);
+//            bulkRequestBuilder.add(indexRequestBuilder);
+//
+//            BulkResponse bulkResponse = bulkRequestBuilder.get();
+//            if (bulkResponse.hasFailures()) {
+//                // process failures by iterating through each bulk response item
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } catch (IllegalAccessException e) {
+//            e.printStackTrace();
+//        }
+//
+//        elasticsearchTemplate.bulkIndex();
     }
+
+    @Override
+    public <T> boolean createIndex(String indexName,String indexType, Class<T> clazz) {
+        elasticsearchTemplate.createIndex(indexName);
+        String mappings;
+        if (clazz.isAnnotationPresent(Mapping.class)) {
+            String mappingPath = ((Mapping)clazz.getAnnotation(Mapping.class)).mappingPath();
+            if (!StringUtils.isEmpty(mappingPath)) {
+                mappings = readFileFromClasspath(mappingPath);
+                if (!StringUtils.isEmpty(mappings)) {
+                    return elasticsearchTemplate.putMapping(clazz, mappings);
+                }
+            } else {
+                log.info("mappingPath in @Mapping has to be defined. Building mappings using @Field");
+            }
+        }
+
+        ElasticsearchPersistentEntity<T> persistentEntity = elasticsearchTemplate.getPersistentEntityFor(clazz);
+        mappings = null;
+
+        XContentBuilder xContentBuilder;
+        try {
+            ElasticsearchPersistentProperty property = (ElasticsearchPersistentProperty)persistentEntity.getRequiredIdProperty();
+            xContentBuilder = MappingBuilder.buildMapping(clazz, persistentEntity.getIndexType(), property.getFieldName(), persistentEntity.getParentType());
+        } catch (Exception var5) {
+            throw new ElasticsearchException("Failed to build mapping for " + clazz.getSimpleName(), var5);
+        }
+
+        return elasticsearchTemplate.putMapping(indexName,indexType,xContentBuilder);
+
+    }
+
+    /**
+     * 更新
+     *
+     * @param esUser
+     * @return
+     */
+    @Override
+    public EsUser updateEsUser(EsUser esUser,String indexSuffix) {
+        EsUser esUser1 = getEsUserById(esUser.getId(),indexSuffix);
+        esUser1.setUserName("哈哈哈");
+        esUser1 = userSearchRepository.save(esUser);
+        return esUser1;
+    }
+
 
     /**
      * 根据条件查询
@@ -127,6 +225,15 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
         // 分页参数 页码：前端从1开始，jpa从0开始
         Pageable pageable = PageRequest.of(page-1,size);
         Page<EsUser> userPage = Page.empty(pageable);
+        //时间不能空
+        if (StringUtils.isEmpty(startTime) || StringUtils.isEmpty(endTime)){
+            SimpleDateFormat dataFormat = new SimpleDateFormat(DateUtil.YYYY_MM_DD_HH_MM_SS);
+            Date now = new Date();
+            startTime = dataFormat.format(now);
+            endTime = dataFormat.format(now);
+        }
+        //获取时间的索引
+        String[] indexNames = ElasticsearchUtil.getIndexNames(userIndex,startTime,endTime);
         try {
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
             NativeSearchQueryBuilder nativeSearchQueryBuilder = new NativeSearchQueryBuilder();
@@ -154,8 +261,10 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
             }else{
                 nativeSearchQueryBuilder.withSort(SortBuilders.scoreSort().order(SortOrder.DESC));
             }
-//            指定索引 --nativeSearchQueryBuilder.withIndices("user");
+//            指定索引 --
+            nativeSearchQueryBuilder.withIndices(indexNames);
             SearchQuery searchQuery = nativeSearchQueryBuilder.withQuery(boolQuery).build();
+            log.info(searchQuery.getIndices().toString());
             log.info("ES查询:"+searchQuery.getQuery().toString().replaceAll("\n|\r|\t",""));
             userPage = userSearchRepository.search(searchQuery);
 
@@ -177,10 +286,19 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
      * @return
      */
     @Override
-    public Map<String,Object> getEsUserAggregationByCreateOn(EsUser esUser, Integer page, Integer size, String orderField) {
+    public Map<String,Object> getEsUserAggregationByCreateOn(EsUser esUser,String startTime,String endTime,Integer page, Integer size, String orderField) {
         // 分页参数 页码：前端从1开始，jpa从0开始
         List<EsUserAggVo> esUserAggVoList = new ArrayList<>();
         Map<String,Object> reMap = new HashMap<>();
+        //时间不能空
+        if (StringUtils.isEmpty(startTime) || StringUtils.isEmpty(endTime)){
+            SimpleDateFormat dataFormat = new SimpleDateFormat(DateUtil.YYYY_MM_DD_HH_MM_SS);
+            Date now = new Date();
+            startTime = dataFormat.format(now);
+            endTime = dataFormat.format(now);
+        }
+        //获取时间的索引
+        String[] indexNames = ElasticsearchUtil.getIndexNames(userIndex,startTime,endTime);
         try {
             BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
             NativeSearchQueryBuilder nativeSearchQueryBuilder = new NativeSearchQueryBuilder();
@@ -190,7 +308,16 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
             if (!StringUtils.isEmpty(esUser.getUserName())){
                 boolQuery.must(QueryBuilders.termQuery("userName",esUser.getUserName()));
             }
+            //时间范围
+            RangeQueryBuilder rangeQueryBuilder = QueryBuilders.rangeQuery("date");
+            if (!StringUtils.isEmpty(startTime) ){
+                boolQuery.must(rangeQueryBuilder.gte(startTime));
+            }
+            if (!StringUtils.isEmpty(endTime)){
+                boolQuery.must(rangeQueryBuilder.lte(endTime));
+            }
             nativeSearchQueryBuilder.withQuery(boolQuery);
+            nativeSearchQueryBuilder.withIndices(indexNames);
 
             TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms("userNameAgg").field("userName");
             TermsAggregationBuilder sexTermsAggregationBuilder = AggregationBuilders.terms("sexAgg").field("sex");
@@ -202,6 +329,7 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
                             .subAggregation(sexTermsAggregationBuilder)
                             .subAggregation(avgAggregationBuilder));
             SearchQuery searchQuery = nativeSearchQueryBuilder.build();
+            log.info("ES索引:"+searchQuery.getIndices().toString());
             log.info("ES查询:"+searchQuery.getQuery().toString().replaceAll("\n|\r|\t",""));
             log.info("ES汇聚:"+searchQuery.getAggregations().toString().replaceAll("\n|\r|\t",""));
 //            Page<EsUser> esUserResult = userSearchRepository.search(searchQuery);

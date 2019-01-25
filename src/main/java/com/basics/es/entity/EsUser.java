@@ -14,14 +14,14 @@ import java.util.Date;
 
 /**
  * @Description 专门给es的实体
- * 实体类需要添加@Document，项目启动会在ES中自动创建index与type ，如果动态索引名字，就不用
+ * 实体类需要添加@Document，动态索引名字
  * 列@Field 指定列类型、中文分词。。
  *
  * @Author hyk
  * @Date 2019/1/22 16:19
  **/
 @Data
-@Document(indexName = "user",type = "content")
+@Document(indexName = "user_#{ T(com.basics.utils.EsIndexChange).getSuffix() }",type = "content",createIndex = false)
 public class EsUser implements Serializable {
 
     @Id

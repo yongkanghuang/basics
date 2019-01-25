@@ -6,11 +6,11 @@ server:
 spring:
   datasource:
      #driver-class-name: oracle.jdbc.driver.OracleDriver
-     driver-class-name: com.mysql.cj.jdbc.Driver
-     username: *
-     password: *
+     driver-class-name: com.mysql.jdbc.Driver
+     username: root
+     password: root
 #     url: jdbc:oracle:thin:@localhost:1521:xe
-     url: jdbc:mysql://ip:3306/basics?user=root&amp;password=root&amp;autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=utf-8
+     url: jdbc:mysql://47.105.181.242:3306/basics?user=root&amp;password=root&amp;autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=utf-8
      type: com.zaxxer.hikari.HikariDataSource
      hikari:
       minimum-idle: 5
@@ -54,11 +54,14 @@ jwt:
 snmp:
     timeout: 8000
     community: public
-    ip : ip
+    ip : 47.105.181.242
 
 redis :
-    ip : ip
+    ip : 47.105.181.242
     port : 6379
+
+elasticsearch:
+  userIndex : user
 
 
 
