@@ -42,6 +42,24 @@ spring:
     port: 6379
     password:
     timeout: 5000ms
+  rabbitmq:
+    host: 47.105.181.242
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        concurrency: 10
+        max-concurrency: 20
+        acknowledge-mode: manual
+        prefetch: 5
+    publisher-confirms: true
+    publisher-returns: true
+    template:
+      mandatory: true
+
+#security:basic:enabled: false
+
 #swagger-ui.html
 swagger:
    enabled : true
@@ -57,11 +75,17 @@ snmp:
     ip : 47.105.181.242
 
 redis :
-    ip : 47.105.181.242
+    #ip : 47.105.181.242
+    ip : 127.0.0.1
     port : 6379
 
 elasticsearch:
   userIndex : user
+  userIndexType : content
+
+wx:
+  appId: wxf34486aa25fe3425
+  appSecret: 4f5baf61c0477ed7129ad7cbc2a7796a
 
 
 

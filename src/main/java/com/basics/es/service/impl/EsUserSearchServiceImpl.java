@@ -63,6 +63,9 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
     @Value(value = "${elasticsearch.userIndex}")
     String userIndex;
 
+    @Value(value = "${elasticsearch.userIndexType}")
+    String userIndexType;
+
     /**
      * 查询es数据源的单用户
      *
@@ -84,7 +87,7 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
      */
     @Override
     public void deleteEsUserById(String id,String indexSuffix) {
-        elasticsearchTemplate.delete(userIndex+"_"+indexSuffix,"content",id);
+        elasticsearchTemplate.delete(userIndex+"_"+indexSuffix,userIndexType,id);
     }
 
     /**
@@ -96,37 +99,12 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
     public void saveEsUser(List<EsUser> esUserList,String indexSuffix) {
         List<IndexQuery> indexQueries = new ArrayList<IndexQuery>();
         for (EsUser esUser:esUserList){
-            IndexQuery indexQuery = new IndexQueryBuilder().withIndexName(userIndex+"_"+indexSuffix).withType("content").withObject(esUser).build();
+            IndexQuery indexQuery = new IndexQueryBuilder()
+                    .withIndexName(userIndex+"_"+indexSuffix)
+                    .withType(userIndexType).withObject(esUser).build();
             indexQueries.add(indexQuery);
         }
-//
         elasticsearchTemplate.bulkIndex(indexQueries);
-//        EsIndexChange.setSuffix(indexSuffix);
-//        userSearchRepository.saveAll(esUserList);
-//        BulkRequestBuilder bulkRequestBuilder = elasticsearchTemplate.getClient().prepareBulk();
-//        Field[] fs = MappingBuilder.retrieveFields(EsUser.class);
-////
-//        try {
-//            IndexRequestBuilder indexRequestBuilder = elasticsearchTemplate.getClient().prepareIndex("user"+indexSuffix,"content");
-//            XContentBuilder xContentBuilder = jsonBuilder().startObject();
-//            for (int i = 0; i < fs.length; i++){
-//                xContentBuilder.field(fs[i].getName(),fs[i].get(esUserList.get(0)));
-//            }
-//            xContentBuilder.endObject();
-//            indexRequestBuilder.setSource(xContentBuilder);
-//            bulkRequestBuilder.add(indexRequestBuilder);
-//
-//            BulkResponse bulkResponse = bulkRequestBuilder.get();
-//            if (bulkResponse.hasFailures()) {
-//                // process failures by iterating through each bulk response item
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } catch (IllegalAccessException e) {
-//            e.printStackTrace();
-//        }
-//
-//        elasticsearchTemplate.bulkIndex();
     }
 
     @Override
@@ -171,6 +149,13 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
         EsUser esUser1 = getEsUserById(esUser.getId(),indexSuffix);
         esUser1.setUserName("哈哈哈");
         esUser1 = userSearchRepository.save(esUser);
+        UpdateQuery updateQuery = new UpdateQuery();
+        updateQuery.setIndexName(userIndex+"_"+indexSuffix);
+        updateQuery.setType(userIndexType);
+        updateQuery.setClazz(EsUser.class);
+//        updateQuery.setUpdateRequest();
+//        UpdateRequest updateRequest = new UpdateRequestBuilder(elasticsearchTemplate.getClient()).setDoc(esUser1).;
+//        elasticsearchTemplate.update();
         return esUser1;
     }
 
@@ -380,7 +365,7 @@ public class EsUserSearchServiceImpl implements EsUserSearchService {
             reMap.put("totalPages",resultSize);
             reMap.put("size",size);
             reMap.put("number",page);
-            reMap.put("content",reList);
+            reMap.put(userIndexType,reList);
         }catch (Exception e){
             log.error(e.getMessage());
         }
